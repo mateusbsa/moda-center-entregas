@@ -28,3 +28,6 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- Deliveries are claimed only through the `iniciar_rota` database function, so two couriers can never take the same package.
+- Profiles are created via `register_profile` (from signup metadata on first sign-in); roles live in `public.users` and are never writable by their owner.

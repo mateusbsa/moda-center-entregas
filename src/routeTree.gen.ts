@@ -10,33 +10,73 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthenticatedCargaRouteImport } from './routes/_authenticated/carga'
+import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
+import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedCargaRoute = AuthenticatedCargaRouteImport.update({
+  id: '/carga',
+  path: '/carga',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEntregasRoute = AuthenticatedEntregasRouteImport.update({
+  id: '/entregas',
+  path: '/entregas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRotaRoute = AuthenticatedRotaRouteImport.update({
+  id: '/rota',
+  path: '/rota',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/carga': typeof AuthenticatedCargaRoute
+  '/entregas': typeof AuthenticatedEntregasRoute
+  '/rota': typeof AuthenticatedRotaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/carga': typeof AuthenticatedCargaRoute
+  '/entregas': typeof AuthenticatedEntregasRoute
+  '/rota': typeof AuthenticatedRotaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_authenticated/carga': typeof AuthenticatedCargaRoute
+  '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
+  '/_authenticated/rota': typeof AuthenticatedRotaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/carga' | '/entregas' | '/rota'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/carga' | '/entregas' | '/rota'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/_authenticated/carga'
+    | '/_authenticated/entregas'
+    | '/_authenticated/rota'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +88,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/carga': {
+      id: '/_authenticated/carga'
+      path: '/carga'
+      fullPath: '/carga'
+      preLoaderRoute: typeof AuthenticatedCargaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/entregas': {
+      id: '/_authenticated/entregas'
+      path: '/entregas'
+      fullPath: '/entregas'
+      preLoaderRoute: typeof AuthenticatedEntregasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rota': {
+      id: '/_authenticated/rota'
+      path: '/rota'
+      fullPath: '/rota'
+      preLoaderRoute: typeof AuthenticatedRotaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCargaRoute: typeof AuthenticatedCargaRoute
+  AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
+  AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCargaRoute: AuthenticatedCargaRoute,
+  AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
+  AuthenticatedRotaRoute: AuthenticatedRotaRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

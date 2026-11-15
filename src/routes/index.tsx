@@ -1,23 +1,152 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Store, Truck } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { profileQuery, type Perfil } from "@/lib/profile";
 
-// The home route ships no og:image, so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Carga MC — Entregas no Moda Center" },
+      { name: "description", content: "Logística de entregas atacadistas no Moda Center Santa Cruz: lojistas e entregadores." },
+      { property: "og:title", content: "Carga MC — Entregas no Moda Center" },
+      { property: "og:description", content: "Cadastre entregas, monte a carga e saia em rota para excursões e transportadoras." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [perfil, setPerfil] = useState<Perfil | null>(null);
+  const [modo, setModo] = useState<"entrar" | "cadastrar">("entrar");
+  const [loading, setLoading] = useState(false);
+  const [aguardando, setAguardando] = useState(false);
+  const [f, setF] = useState({ email: "", senha: "", nome: "", telefone: "", cnpj: "", store_nome: "" });
+  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
+
+  async function rotear() {
+    const p = await qc.fetchQuery(profileQuery);
+    if (!p) return false;
+    navigate({ to: p.role === "admin" ? "/entregas" : "/carga", replace: true });
+    return true;
+  }
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) rotear().catch(() => {});
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function enviar(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (modo === "entrar") {
+        const { error } = await supabase.auth.signInWithPassword({ email: f.email, password: f.senha });
+        if (error) throw error;
+        qc.removeQueries({ queryKey: ["profile"] });
+        if (!(await rotear())) toast.error("Perfil não encontrado para esta conta.");
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email: f.email,
+          password: f.senha,
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: { perfil, nome: f.nome, telefone: f.telefone, cnpj: f.cnpj, store_nome: f.store_nome },
+          },
+        });
+        if (error) throw error;
+        if (data.session) await rotear();
+        else setAguardando(true);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao entrar");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (aguardando)
+    return (
+      <Shell>
+        <div className="card-hard p-6 text-center">
+          <h2 className="text-2xl">Confirme seu e-mail</h2>
+          <p className="mt-3 text-lg font-medium">Enviamos um link para <b>{f.email}</b>. Depois de confirmar, volte e entre.</p>
+          <Button variant="dark" size="xl" className="mt-6" onClick={() => { setAguardando(false); setModo("entrar"); }}>Voltar para entrar</Button>
+        </div>
+      </Shell>
+    );
+
+  if (!perfil)
+    return (
+      <Shell>
+        <p className="text-lg font-semibold">Como você vai usar o app?</p>
+        <button onClick={() => setPerfil("admin")} className="card-hard flex w-full items-center gap-4 p-5 text-left active:translate-x-[2px] active:translate-y-[2px]">
+          <span className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-secondary"><Store className="size-9" /></span>
+          <span><span className="block font-display text-2xl">Lojista</span><span className="font-medium text-muted-foreground">Cadastrar entregas da semana</span></span>
+        </button>
+        <button onClick={() => setPerfil("entregador")} className="card-hard flex w-full items-center gap-4 p-5 text-left active:translate-x-[2px] active:translate-y-[2px]">
+          <span className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Truck className="size-9" /></span>
+          <span><span className="block font-display text-2xl">Entregador</span><span className="font-medium text-muted-foreground">Montar carga e sair em rota</span></span>
+        </button>
+      </Shell>
+    );
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <Shell>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl">{perfil === "admin" ? "Lojista" : "Entregador"}</h2>
+        <Button variant="link" onClick={() => setPerfil(null)}>Trocar perfil</Button>
+      </div>
+      <div className="grid grid-cols-2 gap-2 rounded-xl border-2 border-foreground p-1">
+        {(["entrar", "cadastrar"] as const).map((m) => (
+          <button key={m} onClick={() => setModo(m)} className={`h-12 rounded-lg text-base font-bold ${modo === m ? "bg-primary text-primary-foreground" : ""}`}>
+            {m === "entrar" ? "Entrar" : "Criar conta"}
+          </button>
+        ))}
+      </div>
+      <form onSubmit={enviar} className="space-y-4">
+        {modo === "cadastrar" && (
+          <>
+            <Campo label="Seu nome"><Input required value={f.nome} onChange={set("nome")} /></Campo>
+            <Campo label="Telefone / WhatsApp"><Input type="tel" inputMode="tel" value={f.telefone} onChange={set("telefone")} /></Campo>
+            {perfil === "admin" && <Campo label="Nome da loja"><Input required value={f.store_nome} onChange={set("store_nome")} /></Campo>}
+            <Campo label={perfil === "admin" ? "CNPJ da loja" : "CNPJ da loja onde trabalha"}>
+              <Input required inputMode="numeric" placeholder="00.000.000/0000-00" value={f.cnpj} onChange={set("cnpj")} />
+            </Campo>
+          </>
+        )}
+        <Campo label="E-mail"><Input required type="email" autoComplete="email" value={f.email} onChange={set("email")} /></Campo>
+        <Campo label="Senha"><Input required type="password" minLength={6} autoComplete={modo === "entrar" ? "current-password" : "new-password"} value={f.senha} onChange={set("senha")} /></Campo>
+        <Button type="submit" variant="action" size="xl" disabled={loading}>{loading ? "Aguarde..." : modo === "entrar" ? "Entrar" : "Criar conta"}</Button>
+      </form>
+    </Shell>
+  );
+}
+
+function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="space-y-1.5"><Label className="text-base font-bold">{label}</Label>{children}</div>;
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="mx-auto min-h-screen max-w-md px-5 pb-10">
+      <div className="-mx-5 mb-6 border-b-2 border-foreground bg-primary px-5 pb-6 pt-10 text-primary-foreground">
+        <p className="text-sm font-bold uppercase tracking-widest">Moda Center Santa Cruz</p>
+        <h1 className="mt-1 text-4xl">Carga MC</h1>
+        <p className="mt-1 font-semibold">Entregas atacadistas sem perder excursão.</p>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </main>
   );
 }

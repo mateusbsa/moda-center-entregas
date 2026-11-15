@@ -15,7 +15,7 @@ import { fmtHora } from "@/lib/format";
 import { RAIO_CHEGADA_M, agruparParadas, distanciaM, resumoPorCliente, trazerParaFrente } from "@/lib/route";
 
 export const Route = createFileRoute("/_authenticated/rota")({
-  head: () => ({ meta: [{ title: "Rota em andamento — Carga MC" }, { name: "description", content: "Mapa e paradas da rota com comprovante por foto." }] }),
+  head: () => ({ meta: [{ title: "Rota em andamento — Carga MC" }, { name: "description", content: "Mapa e paradas da rota com comprovante por foto." }, { property: "og:title", content: "Rota em andamento — Carga MC" }, { property: "og:description", content: "Acompanhe as paradas no Moda Center e confirme entregas com foto." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Rota,
 });
 

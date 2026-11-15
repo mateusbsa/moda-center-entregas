@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { profileQuery, type Perfil } from "@/lib/profile";
+import { profileErrorMessage, validateProfileInput } from "@/lib/onboarding";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,6 +31,8 @@ function Index() {
   const [modo, setModo] = useState<"entrar" | "cadastrar">("entrar");
   const [loading, setLoading] = useState(false);
   const [aguardando, setAguardando] = useState(false);
+  const [completar, setCompletar] = useState(false);
+  const [erroPerfil, setErroPerfil] = useState("");
   const [f, setF] = useState({ email: "", senha: "", nome: "", telefone: "", cnpj: "", store_nome: "" });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
 
@@ -42,7 +45,15 @@ function Index() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) rotear().catch(() => {});
+      if (data.session) {
+        const m = data.session.user.user_metadata;
+        setPerfil(m["perfil"] === "admin" ? "admin" : "entregador");
+        setF((current) => ({ ...current, nome: m["nome"] ?? "", telefone: m["telefone"] ?? "", cnpj: m["cnpj"] ?? "", store_nome: m["store_nome"] ?? "" }));
+        rotear().then((ok) => { if (!ok) setCompletar(true); }).catch((error) => {
+          setErroPerfil(profileErrorMessage(error));
+          setCompletar(true);
+        });
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -51,12 +62,33 @@ function Index() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (modo === "entrar") {
+      if (completar) {
+        validateProfileInput(f);
+        const { error } = await supabase.rpc("register_profile", {
+          _perfil: perfil ?? "entregador", _nome: f.nome.trim(), _telefone: f.telefone,
+          _cnpj: f.cnpj, ...(perfil === "admin" ? { _store_nome: f.store_nome.trim() } : {}),
+        });
+        if (error) throw error;
+        qc.removeQueries({ queryKey: ["profile"] });
+        if (!(await rotear())) throw new Error("Perfil não encontrado para esta conta.");
+      } else if (modo === "entrar") {
         const { error } = await supabase.auth.signInWithPassword({ email: f.email, password: f.senha });
         if (error) throw error;
         qc.removeQueries({ queryKey: ["profile"] });
-        if (!(await rotear())) toast.error("Perfil não encontrado para esta conta.");
+        const { data: auth } = await supabase.auth.getUser();
+        const m = auth.user?.user_metadata;
+        if (m) {
+          setPerfil(m["perfil"] === "admin" ? "admin" : "entregador");
+          setF((current) => ({ ...current, nome: m["nome"] ?? "", telefone: m["telefone"] ?? "", cnpj: m["cnpj"] ?? "", store_nome: m["store_nome"] ?? "" }));
+        }
+        try {
+          if (!(await rotear())) setCompletar(true);
+        } catch (error) {
+          setCompletar(true);
+          setErroPerfil(profileErrorMessage(error));
+        }
       } else {
+        validateProfileInput(f);
         const { data, error } = await supabase.auth.signUp({
           email: f.email,
           password: f.senha,
@@ -70,7 +102,9 @@ function Index() {
         else setAguardando(true);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao entrar");
+      const message = profileErrorMessage(err);
+      if (completar) setErroPerfil(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -105,18 +139,19 @@ function Index() {
   return (
     <Shell>
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl">{perfil === "admin" ? "Lojista" : "Entregador"}</h2>
-        <Button variant="link" onClick={() => setPerfil(null)}>Trocar perfil</Button>
+        <h2 className="text-2xl">{completar ? "Concluir cadastro" : perfil === "admin" ? "Lojista" : "Entregador"}</h2>
+        {completar ? <Button variant="link" onClick={async () => { await supabase.auth.signOut(); qc.removeQueries({ queryKey: ["profile"] }); setCompletar(false); setErroPerfil(""); setPerfil(null); }}>Sair</Button> : <Button variant="link" onClick={() => setPerfil(null)}>Trocar perfil</Button>}
       </div>
-      <div className="grid grid-cols-2 gap-2 rounded-xl border-2 border-foreground p-1">
+      {completar && erroPerfil && <p role="alert" className="font-semibold text-destructive">{erroPerfil}</p>}
+      {!completar && <div className="grid grid-cols-2 gap-2 rounded-xl border-2 border-foreground p-1">
         {(["entrar", "cadastrar"] as const).map((m) => (
           <button key={m} onClick={() => setModo(m)} className={`h-12 rounded-lg text-base font-bold ${modo === m ? "bg-primary text-primary-foreground" : ""}`}>
             {m === "entrar" ? "Entrar" : "Criar conta"}
           </button>
         ))}
-      </div>
+      </div>}
       <form onSubmit={enviar} className="space-y-4">
-        {modo === "cadastrar" && (
+        {(modo === "cadastrar" || completar) && (
           <>
             <Campo label="Seu nome"><Input required value={f.nome} onChange={set("nome")} /></Campo>
             <Campo label="Telefone / WhatsApp"><Input type="tel" inputMode="tel" value={f.telefone} onChange={set("telefone")} /></Campo>
@@ -126,9 +161,9 @@ function Index() {
             </Campo>
           </>
         )}
-        <Campo label="E-mail"><Input required type="email" autoComplete="email" value={f.email} onChange={set("email")} /></Campo>
-        <Campo label="Senha"><Input required type="password" minLength={6} autoComplete={modo === "entrar" ? "current-password" : "new-password"} value={f.senha} onChange={set("senha")} /></Campo>
-        <Button type="submit" variant="action" size="xl" disabled={loading}>{loading ? "Aguarde..." : modo === "entrar" ? "Entrar" : "Criar conta"}</Button>
+        {!completar && <><Campo label="E-mail"><Input required type="email" autoComplete="email" value={f.email} onChange={set("email")} /></Campo>
+        <Campo label="Senha"><Input required type="password" minLength={6} autoComplete={modo === "entrar" ? "current-password" : "new-password"} value={f.senha} onChange={set("senha")} /></Campo></>}
+        <Button type="submit" variant="action" size="xl" disabled={loading}>{loading ? "Aguarde..." : completar ? "Salvar cadastro" : modo === "entrar" ? "Entrar" : "Criar conta"}</Button>
       </form>
     </Shell>
   );

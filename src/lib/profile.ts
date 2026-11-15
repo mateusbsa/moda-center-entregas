@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { validateProfileInput } from "./onboarding";
 
 export type Perfil = "admin" | "entregador";
 
@@ -7,13 +8,16 @@ export type Perfil = "admin" | "entregador";
 export const profileQuery = queryOptions({
   queryKey: ["profile"],
   queryFn: async () => {
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
     const user = auth.user;
     if (!user) return null;
-    let { data } = await supabase.from("users").select("*, stores(nome, cnpj)").eq("id", user.id).maybeSingle();
+    let { data, error: readError } = await supabase.from("users").select("*, stores(nome, cnpj)").eq("id", user.id).maybeSingle();
+    if (readError) throw readError;
     if (!data) {
       const m = user.user_metadata as { perfil?: Perfil; nome?: string; telefone?: string; cnpj?: string; store_nome?: string };
       if (m.perfil && m.cnpj && m.nome) {
+        validateProfileInput({ nome: m.nome, cnpj: m.cnpj });
         const { error } = await supabase.rpc("register_profile", {
           _perfil: m.perfil,
           _nome: m.nome,
@@ -22,9 +26,11 @@ export const profileQuery = queryOptions({
           ...(m.store_nome ? { _store_nome: m.store_nome } : {}),
         });
         if (error) throw error;
-        ({ data } = await supabase.from("users").select("*, stores(nome, cnpj)").eq("id", user.id).maybeSingle());
+        ({ data, error: readError } = await supabase.from("users").select("*, stores(nome, cnpj)").eq("id", user.id).maybeSingle());
+        if (readError) throw readError;
       }
     }
     return data;
   },
+  retry: false,
 });

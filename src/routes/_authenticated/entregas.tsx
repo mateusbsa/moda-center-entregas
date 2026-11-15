@@ -15,7 +15,7 @@ import { TIPO_LABEL, fmtHora, hojeAs } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 
 export const Route = createFileRoute("/_authenticated/entregas")({
-  head: () => ({ meta: [{ title: "Entregas da semana — Carga MC" }, { name: "description", content: "Cadastro rápido de entregas da loja." }] }),
+  head: () => ({ meta: [{ title: "Entregas da semana — Carga MC" }, { name: "description", content: "Cadastro rápido de entregas da loja." }, { property: "og:title", content: "Entregas da semana — Carga MC" }, { property: "og:description", content: "Organize os pacotes e entregas atacadistas da sua loja no Moda Center." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Entregas,
 });
 

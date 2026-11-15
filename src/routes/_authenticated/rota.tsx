@@ -13,10 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { profileQuery } from "@/lib/profile";
 import { fmtHora } from "@/lib/format";
 import { RAIO_CHEGADA_M, agruparParadas, distanciaM, resumoPorCliente, trazerParaFrente } from "@/lib/route";
+import { ProfileRequired } from "@/components/ProfileRequired";
 
 export const Route = createFileRoute("/_authenticated/rota")({
   head: () => ({ meta: [{ title: "Rota em andamento — Carga MC" }, { name: "description", content: "Mapa e paradas da rota com comprovante por foto." }, { property: "og:title", content: "Rota em andamento — Carga MC" }, { property: "og:description", content: "Acompanhe as paradas no Moda Center e confirme entregas com foto." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
-  component: Rota,
+  component: () => <ProfileRequired><Rota /></ProfileRequired>,
 });
 
 function Rota() {
@@ -26,9 +27,10 @@ function Rota() {
     queryKey: ["rota", perfil?.id],
     enabled: !!perfil,
     queryFn: async () => {
+      if (!perfil) return [];
       const { data, error } = await supabase.from("deliveries")
         .select("*, carriers(id, nome, setor_vaga_texto, latitude, longitude, alerta_fila_ativo)")
-        .in("status", ["em_rota", "atrasado"]).eq("courier_id", perfil!.id).order("ordem_rota");
+        .in("status", ["em_rota", "atrasado"]).eq("courier_id", perfil.id).order("ordem_rota");
       if (error) throw error;
       return data;
     },

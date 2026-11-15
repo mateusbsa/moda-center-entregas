@@ -4,7 +4,7 @@ import { validateProfileInput } from "./onboarding";
 
 export type Perfil = "admin" | "entregador";
 
-/** Loads the signed-in user's profile; finishes pending onboarding saved at signup. */
+/** Reads only: background refreshes must never create profiles. */
 export const profileQuery = queryOptions({
   queryKey: ["profile"],
   queryFn: async () => {
@@ -12,25 +12,25 @@ export const profileQuery = queryOptions({
     if (authError) throw authError;
     const user = auth.user;
     if (!user) return null;
-    let { data, error: readError } = await supabase.from("users").select("*, stores(nome, cnpj)").eq("id", user.id).maybeSingle();
+    const { data, error: readError } = await supabase.from("users").select("*, stores(nome, cnpj)").eq("id", user.id).maybeSingle();
     if (readError) throw readError;
-    if (!data) {
-      const m = user.user_metadata as { perfil?: Perfil; nome?: string; telefone?: string; cnpj?: string; store_nome?: string };
-      if (m.perfil && m.cnpj && m.nome) {
-        validateProfileInput({ nome: m.nome, cnpj: m.cnpj });
-        const { error } = await supabase.rpc("register_profile", {
-          _perfil: m.perfil,
-          _nome: m.nome,
-          _telefone: m.telefone ?? "",
-          _cnpj: m.cnpj,
-          ...(m.store_nome ? { _store_nome: m.store_nome } : {}),
-        });
-        if (error) throw error;
-        ({ data, error: readError } = await supabase.from("users").select("*, stores(nome, cnpj)").eq("id", user.id).maybeSingle());
-        if (readError) throw readError;
-      }
-    }
     return data;
   },
   retry: false,
 });
+
+/** Called only from the entry flow, never from background profile queries. */
+export async function completeSignupProfile() {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  if (!data.user) return false;
+  const m = data.user.user_metadata as { perfil?: Perfil; nome?: string; telefone?: string; cnpj?: string; store_nome?: string };
+  if (!m.perfil || !m.cnpj || !m.nome) return false;
+  validateProfileInput({ nome: m.nome, cnpj: m.cnpj });
+  const result = await supabase.rpc("register_profile", {
+    _perfil: m.perfil, _nome: m.nome, _telefone: m.telefone ?? "", _cnpj: m.cnpj,
+    ...(m.store_nome ? { _store_nome: m.store_nome } : {}),
+  });
+  if (result.error) throw result.error;
+  return true;
+}

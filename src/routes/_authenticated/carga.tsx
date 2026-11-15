@@ -8,10 +8,11 @@ import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { profileQuery } from "@/lib/profile";
 import { fmtHora } from "@/lib/format";
+import { ProfileRequired } from "@/components/ProfileRequired";
 
 export const Route = createFileRoute("/_authenticated/carga")({
   head: () => ({ meta: [{ title: "Montar carga — Carga MC" }, { name: "description", content: "Marque os volumes colocados no veículo e inicie a rota." }, { property: "og:title", content: "Montar carga — Carga MC" }, { property: "og:description", content: "Selecione os pacotes da loja e inicie sua rota no Moda Center." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
-  component: Carga,
+  component: () => <ProfileRequired><Carga /></ProfileRequired>,
 });
 
 function Carga() {

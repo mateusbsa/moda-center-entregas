@@ -33,4 +33,4 @@ use the editor.
 - Profiles are created via `register_profile` (from signup metadata on first sign-in); roles live in `public.users` and are never writable by their owner.
 - Deliveries are confirmed only through `confirmar_entrega` (sets photo, status, queue telemetry); proof photos live in the private `comprovantes` bucket under `<store_id>/`.
 - Leaflet is imported dynamically inside `RouteMap`'s effect so SSR never loads it.
-- Failed profile onboarding stays on the public entry page with an editable completion form; validate input before `register_profile` and surface its errors without automatic retries so accounts can recover without signing up again.
+- Profile queries are read-only; only entry flows or explicit completion submit call `register_profile`, after validation. Work screens share `ProfileRequired` to expose recovery instead of silently running without a profile.

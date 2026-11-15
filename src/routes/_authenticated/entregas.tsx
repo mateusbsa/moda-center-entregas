@@ -13,10 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { profileQuery } from "@/lib/profile";
 import { TIPO_LABEL, fmtHora, hojeAs } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ProfileRequired } from "@/components/ProfileRequired";
 
 export const Route = createFileRoute("/_authenticated/entregas")({
   head: () => ({ meta: [{ title: "Entregas da semana — Carga MC" }, { name: "description", content: "Cadastro rápido de entregas da loja." }, { property: "og:title", content: "Entregas da semana — Carga MC" }, { property: "og:description", content: "Organize os pacotes e entregas atacadistas da sua loja no Moda Center." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
-  component: Entregas,
+  component: () => <ProfileRequired><Entregas /></ProfileRequired>,
 });
 
 const selectCls = "h-12 w-full rounded-lg border-2 border-input bg-card px-3 text-base font-medium";

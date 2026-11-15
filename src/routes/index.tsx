@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { profileQuery, type Perfil } from "@/lib/profile";
+import { completeSignupProfile, profileQuery, type Perfil } from "@/lib/profile";
 import { profileErrorMessage, validateProfileInput } from "@/lib/onboarding";
 
 export const Route = createFileRoute("/")({
@@ -37,10 +37,20 @@ function Index() {
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
 
   async function rotear() {
-    const p = await qc.fetchQuery(profileQuery);
-    if (!p) return false;
-    navigate({ to: p.role === "admin" ? "/entregas" : "/carga", replace: true });
-    return true;
+    try {
+      let p = await qc.fetchQuery(profileQuery);
+      if (!p && await completeSignupProfile()) {
+        qc.removeQueries({ queryKey: ["profile"] });
+        p = await qc.fetchQuery(profileQuery);
+      }
+      if (!p) { setCompletar(true); return false; }
+      await navigate({ to: p.role === "admin" ? "/entregas" : "/carga", replace: true });
+      return true;
+    } catch (error) {
+      setErroPerfil(profileErrorMessage(error));
+      setCompletar(true);
+      return false;
+    }
   }
 
   useEffect(() => {
@@ -98,7 +108,7 @@ function Index() {
           },
         });
         if (error) throw error;
-        if (data.session) await rotear();
+        if (data.session) { qc.removeQueries({ queryKey: ["profile"] }); await rotear(); }
         else setAguardando(true);
       }
     } catch (err) {

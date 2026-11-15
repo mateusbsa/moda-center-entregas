@@ -1,5 +1,5 @@
 - [x] Unificar recuperação de perfil no cadastro, entrada e retorno do e-mail.
 - [x] Exibir recuperação em entregas, carga e rota, sem recadastrar em consultas automáticas.
-- [x] Validar consultas e erros com nove testes e testar bloqueio de CNPJ inválido no navegador, sem alterar registros, permissões ou configurações.
+- [x] Validar consultas e erros com nove testes e testar bloqueio de CPF inválido no navegador, sem alterar registros, permissões ou configurações.
 - [ ] Verificar conclusão com conta real após entrar: aguarda sessão autorizada; não há conta correspondente para a sessão de teste automática.
-- [ ] Substituir CNPJ por CPF no cadastro; definir qual CPF vincula o entregador à loja antes de alterar a identificação.
+- [x] Substituir CNPJ por CPF no cadastro e vincular entregadores pelo CPF do lojista, preservando registros antigos.

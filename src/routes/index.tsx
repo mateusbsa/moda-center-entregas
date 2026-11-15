@@ -33,7 +33,7 @@ function Index() {
   const [aguardando, setAguardando] = useState(false);
   const [completar, setCompletar] = useState(false);
   const [erroPerfil, setErroPerfil] = useState("");
-  const [f, setF] = useState({ email: "", senha: "", nome: "", telefone: "", cnpj: "", store_nome: "" });
+  const [f, setF] = useState({ email: "", senha: "", nome: "", telefone: "", cpf: "", store_nome: "" });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
 
   async function rotear() {
@@ -58,7 +58,7 @@ function Index() {
       if (data.session) {
         const m = data.session.user.user_metadata;
         setPerfil(m["perfil"] === "admin" ? "admin" : "entregador");
-        setF((current) => ({ ...current, nome: m["nome"] ?? "", telefone: m["telefone"] ?? "", cnpj: m["cnpj"] ?? "", store_nome: m["store_nome"] ?? "" }));
+        setF((current) => ({ ...current, nome: m["nome"] ?? "", telefone: m["telefone"] ?? "", cpf: m["cpf"] ?? "", store_nome: m["store_nome"] ?? "" }));
         rotear().then((ok) => { if (!ok) setCompletar(true); }).catch((error) => {
           setErroPerfil(profileErrorMessage(error));
           setCompletar(true);
@@ -76,7 +76,7 @@ function Index() {
         validateProfileInput(f);
         const { error } = await supabase.rpc("register_profile", {
           _perfil: perfil ?? "entregador", _nome: f.nome.trim(), _telefone: f.telefone,
-          _cnpj: f.cnpj, ...(perfil === "admin" ? { _store_nome: f.store_nome.trim() } : {}),
+          _cnpj: f.cpf, ...(perfil === "admin" ? { _store_nome: f.store_nome.trim() } : {}),
         });
         if (error) throw error;
         qc.removeQueries({ queryKey: ["profile"] });
@@ -89,7 +89,7 @@ function Index() {
         const m = auth.user?.user_metadata;
         if (m) {
           setPerfil(m["perfil"] === "admin" ? "admin" : "entregador");
-          setF((current) => ({ ...current, nome: m["nome"] ?? "", telefone: m["telefone"] ?? "", cnpj: m["cnpj"] ?? "", store_nome: m["store_nome"] ?? "" }));
+          setF((current) => ({ ...current, nome: m["nome"] ?? "", telefone: m["telefone"] ?? "", cpf: m["cpf"] ?? "", store_nome: m["store_nome"] ?? "" }));
         }
         try {
           if (!(await rotear())) setCompletar(true);
@@ -104,7 +104,7 @@ function Index() {
           password: f.senha,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { perfil, nome: f.nome, telefone: f.telefone, cnpj: f.cnpj, store_nome: f.store_nome },
+            data: { perfil, nome: f.nome, telefone: f.telefone, cpf: f.cpf, store_nome: f.store_nome },
           },
         });
         if (error) throw error;
@@ -166,8 +166,8 @@ function Index() {
             <Campo label="Seu nome"><Input required value={f.nome} onChange={set("nome")} /></Campo>
             <Campo label="Telefone / WhatsApp"><Input type="tel" inputMode="tel" value={f.telefone} onChange={set("telefone")} /></Campo>
             {perfil === "admin" && <Campo label="Nome da loja"><Input required value={f.store_nome} onChange={set("store_nome")} /></Campo>}
-            <Campo label={perfil === "admin" ? "CNPJ da loja" : "CNPJ da loja onde trabalha"}>
-              <Input required inputMode="numeric" placeholder="00.000.000/0000-00" value={f.cnpj} onChange={set("cnpj")} />
+            <Campo label={perfil === "admin" ? "Seu CPF" : "CPF do lojista"}>
+              <Input required inputMode="numeric" placeholder="000.000.000-00" value={f.cpf} onChange={set("cpf")} />
             </Campo>
           </>
         )}

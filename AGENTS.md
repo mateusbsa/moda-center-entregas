@@ -34,3 +34,4 @@ use the editor.
 - Deliveries are confirmed only through `confirmar_entrega` (sets photo, status, queue telemetry); proof photos live in the private `comprovantes` bucket under `<store_id>/`.
 - Leaflet is imported dynamically inside `RouteMap`'s effect so SSR never loads it.
 - Profile queries are read-only; only entry flows or explicit completion submit call `register_profile`, after validation. Work screens share `ProfileRequired` to expose recovery instead of silently running without a profile.
+- Store CPF is persisted separately; the existing RPC parameter `_cnpj` is retained for signature compatibility but accepts CPF only. Legacy non-null `cnpj` stores a prefixed compatibility value for new stores; never read it as current identity or convert historical records.

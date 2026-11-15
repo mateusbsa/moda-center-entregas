@@ -219,18 +219,21 @@ export type Database = {
       stores: {
         Row: {
           cnpj: string
+          cpf: string | null
           created_at: string
           id: string
           nome: string
         }
         Insert: {
           cnpj: string
+          cpf?: string | null
           created_at?: string
           id?: string
           nome: string
         }
         Update: {
           cnpj?: string
+          cpf?: string | null
           created_at?: string
           id?: string
           nome?: string

@@ -12,7 +12,7 @@ export const profileQuery = queryOptions({
     if (authError) throw authError;
     const user = auth.user;
     if (!user) return null;
-    const { data, error: readError } = await supabase.from("users").select("*, stores(nome, cnpj)").eq("id", user.id).maybeSingle();
+    const { data, error: readError } = await supabase.from("users").select("*, stores(nome)").eq("id", user.id).maybeSingle();
     if (readError) throw readError;
     return data;
   },
@@ -24,11 +24,11 @@ export async function completeSignupProfile() {
   const { data, error } = await supabase.auth.getUser();
   if (error) throw error;
   if (!data.user) return false;
-  const m = data.user.user_metadata as { perfil?: Perfil; nome?: string; telefone?: string; cnpj?: string; store_nome?: string };
-  if (!m.perfil || !m.cnpj || !m.nome) return false;
-  validateProfileInput({ nome: m.nome, cnpj: m.cnpj });
+  const m = data.user.user_metadata as { perfil?: Perfil; nome?: string; telefone?: string; cpf?: string; store_nome?: string };
+  if (!m.perfil || !m.cpf || !m.nome) return false;
+  validateProfileInput({ nome: m.nome, cpf: m.cpf });
   const result = await supabase.rpc("register_profile", {
-    _perfil: m.perfil, _nome: m.nome, _telefone: m.telefone ?? "", _cnpj: m.cnpj,
+    _perfil: m.perfil, _nome: m.nome, _telefone: m.telefone ?? "", _cnpj: m.cpf,
     ...(m.store_nome ? { _store_nome: m.store_nome } : {}),
   });
   if (result.error) throw result.error;

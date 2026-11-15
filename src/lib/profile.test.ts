@@ -10,7 +10,7 @@ import { completeSignupProfile, profileQuery } from "./profile";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getUser.mockResolvedValue({ data: { user: { id: "user", user_metadata: { perfil: "entregador", nome: "Mateus", cnpj: "12345678901234" } } }, error: null });
+  mocks.getUser.mockResolvedValue({ data: { user: { id: "user", user_metadata: { perfil: "entregador", nome: "Mateus", cpf: "52998224725" } } }, error: null });
   mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
 });
 describe("Profile recovery", () => {
@@ -27,12 +27,12 @@ describe("Profile recovery", () => {
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
   it("preserves registration errors in the explicit entry flow", async () => {
-    mocks.rpc.mockResolvedValue({ error: { message: "Nenhuma loja encontrada com este CNPJ" } });
-    await expect(completeSignupProfile()).rejects.toEqual({ message: "Nenhuma loja encontrada com este CNPJ" });
+    mocks.rpc.mockResolvedValue({ error: { message: "Nenhuma loja encontrada com este CPF" } });
+    await expect(completeSignupProfile()).rejects.toEqual({ message: "Nenhuma loja encontrada com este CPF" });
     expect(mocks.rpc).toHaveBeenCalledTimes(1);
   });
   it("rejects invalid saved metadata before calling registration", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: { user_metadata: { perfil: "admin", nome: "Mateus", cnpj: "12345678901" } } }, error: null });
+    mocks.getUser.mockResolvedValue({ data: { user: { user_metadata: { perfil: "admin", nome: "Mateus", cpf: "12345678901" } } }, error: null });
     await expect(completeSignupProfile()).rejects.toThrow();
     expect(mocks.rpc).not.toHaveBeenCalled();
   });

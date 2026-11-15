@@ -31,3 +31,5 @@ use the editor.
 
 - Deliveries are claimed only through the `iniciar_rota` database function, so two couriers can never take the same package.
 - Profiles are created via `register_profile` (from signup metadata on first sign-in); roles live in `public.users` and are never writable by their owner.
+- Deliveries are confirmed only through `confirmar_entrega` (sets photo, status, queue telemetry); proof photos live in the private `comprovantes` bucket under `<store_id>/`.
+- Leaflet is imported dynamically inside `RouteMap`'s effect so SSR never loads it.

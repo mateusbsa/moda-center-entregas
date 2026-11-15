@@ -277,7 +277,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      confirmar_entrega: {
+        Args: {
+          _carrier_id: string
+          _chegada_em: string
+          _foto_url: string
+          _ids: string[]
+        }
+        Returns: number
+      }
       current_store_id: { Args: never; Returns: string }
+      dist_m: {
+        Args: { lat1: number; lat2: number; lon1: number; lon2: number }
+        Returns: number
+      }
       iniciar_rota: { Args: { _ids: string[] }; Returns: number }
       is_store_admin: { Args: never; Returns: boolean }
       register_profile: {

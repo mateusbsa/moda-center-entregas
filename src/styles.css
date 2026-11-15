@@ -8,6 +8,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -137,4 +138,17 @@
   border: 2px solid var(--foreground);
   border-radius: var(--radius);
   box-shadow: var(--shadow-hard);
+}
+
+.map-pin {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 9999px;
+  border: 3px solid var(--foreground); font-weight: 900; font-size: 15px;
+  background: var(--card); color: var(--foreground); box-shadow: 2px 2px 0 var(--foreground);
+}
+.map-pin-alvo { background: var(--secondary); color: var(--secondary-foreground); width: 42px; height: 42px; font-size: 18px; }
+.map-pin-alerta { background: var(--destructive); color: var(--destructive-foreground); }
+.map-me {
+  width: 20px; height: 20px; border-radius: 9999px; background: var(--ring);
+  border: 3px solid var(--card); box-shadow: 0 0 0 6px color-mix(in oklab, var(--ring) 30%, transparent);
 }
